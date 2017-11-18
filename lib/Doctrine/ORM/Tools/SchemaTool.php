@@ -467,19 +467,7 @@ class SchemaTool
             $options['columnDefinition'] = $mapping['columnDefinition'];
         }
 
-        if (isset($mapping['options'])) {
-            $knownOptions = ['comment', 'unsigned', 'fixed', 'default'];
-
-            foreach ($knownOptions as $knownOption) {
-                if (array_key_exists($knownOption, $mapping['options'])) {
-                    $options[$knownOption] = $mapping['options'][$knownOption];
-
-                    unset($mapping['options'][$knownOption]);
-                }
-            }
-
-            $options['customSchemaOptions'] = $mapping['options'];
-        }
+        $this->gatherColumnOptions($options, $mapping);
 
         if ($class->isIdGeneratorIdentity() && $class->getIdentifierFieldNames() == [$mapping['fieldName']]) {
             $options['autoincrement'] = true;
@@ -690,9 +678,7 @@ class SchemaTool
                     $columnOptions['notnull'] = ! $joinColumn['nullable'];
                 }
 
-                if (isset($fieldMapping['options'])) {
-                    $columnOptions['options'] = $fieldMapping['options'];
-                }
+                $this->gatherColumnOptions($columnOptions, $fieldMapping);
 
                 if ($fieldMapping['type'] == "string" && isset($fieldMapping['length'])) {
                     $columnOptions['length'] = $fieldMapping['length'];
@@ -742,6 +728,23 @@ class SchemaTool
                 $foreignColumns,
                 $fkOptions
             );
+        }
+    }
+
+    private function gatherColumnOptions(array &$options, array $mapping)
+    {
+        if (isset($mapping['options'])) {
+            $knownOptions = ['comment', 'unsigned', 'fixed', 'default'];
+
+            foreach ($knownOptions as $knownOption) {
+                if (array_key_exists($knownOption, $mapping['options'])) {
+                    $options[$knownOption] = $mapping['options'][$knownOption];
+
+                    unset($mapping['options'][$knownOption]);
+                }
+            }
+
+            $options['customSchemaOptions'] = $mapping['options'];
         }
     }
 

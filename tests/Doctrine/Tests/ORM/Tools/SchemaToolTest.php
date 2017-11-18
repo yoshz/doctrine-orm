@@ -18,6 +18,8 @@ use Doctrine\Tests\Models\CompositeKeyInheritance\JoinedDerivedChildClass;
 use Doctrine\Tests\Models\CompositeKeyInheritance\JoinedDerivedIdentityClass;
 use Doctrine\Tests\Models\CompositeKeyInheritance\JoinedDerivedRootClass;
 use Doctrine\Tests\Models\Forum\ForumAvatar;
+use Doctrine\Tests\Models\Forum\ForumBoard;
+use Doctrine\Tests\Models\Forum\ForumCategory;
 use Doctrine\Tests\Models\Forum\ForumUser;
 use Doctrine\Tests\Models\NullDefault\NullDefaultColumn;
 use Doctrine\Tests\OrmTestCase;
@@ -84,6 +86,44 @@ class SchemaToolTest extends OrmTestCase
         $table = $schema->getTable("forum_users");
         $this->assertTrue($table->hasColumn('avatar_id'));
         $this->assertEquals($customColumnDef, $table->getColumn('avatar_id')->getColumnDefinition());
+    }
+
+    public function testPassColumnOptionsToJoinColumn()
+    {
+        $em = $this->_getTestEntityManager();
+        $schemaTool = new SchemaTool($em);
+
+        $category = $em->getClassMetadata(ForumCategory::class);
+        $board = $em->getClassMetadata(ForumBoard::class);
+
+        $classes = array($category, $board);
+
+        $schema = $schemaTool->getSchemaFromMetadata($classes);
+
+        $this->assertTrue($schema->hasTable('forum_categories'));
+        $this->assertTrue($schema->hasTable('forum_boards'));
+
+        $tableCategory = $schema->getTable('forum_categories');
+        $tableBoard = $schema->getTable('forum_boards');
+
+        $this->assertTrue($tableBoard->hasColumn('category_id'));
+
+        $this->assertSame(
+         $tableCategory->getColumn('id')->getFixed(),
+         $tableBoard->getColumn('category_id')->getFixed(),
+         'Foreign key/join column should have the same value of option `fixed` as the referenced column'
+        );
+
+        $this->assertEquals(
+         $tableCategory->getColumn('id')->getCustomSchemaOptions(),
+         $tableBoard->getColumn('category_id')->getCustomSchemaOptions(),
+         'Foreign key/join column should have the same custom options as the referenced column'
+        );
+
+        $this->assertNotEmpty(
+            $tableBoard->getColumn('category_id')->getCustomSchemaOptions(),
+            'There should be custom options set on the column like the collation'
+        );
     }
 
     /**
