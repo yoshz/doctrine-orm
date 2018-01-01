@@ -96,33 +96,33 @@ class SchemaToolTest extends OrmTestCase
         $category = $em->getClassMetadata(ForumCategory::class);
         $board = $em->getClassMetadata(ForumBoard::class);
 
-        $classes = array($category, $board);
+        $classes = [$category, $board];
 
         $schema = $schemaTool->getSchemaFromMetadata($classes);
 
-        $this->assertTrue($schema->hasTable('forum_categories'));
-        $this->assertTrue($schema->hasTable('forum_boards'));
+        self::assertTrue($schema->hasTable('forum_categories'));
+        self::assertTrue($schema->hasTable('forum_boards'));
 
         $tableCategory = $schema->getTable('forum_categories');
         $tableBoard = $schema->getTable('forum_boards');
 
-        $this->assertTrue($tableBoard->hasColumn('category_id'));
+        self::assertTrue($tableBoard->hasColumn('category_id'));
 
-        $this->assertSame(
-         $tableCategory->getColumn('id')->getFixed(),
-         $tableBoard->getColumn('category_id')->getFixed(),
-         'Foreign key/join column should have the same value of option `fixed` as the referenced column'
+        self::assertSame(
+            $tableCategory->getColumn('id')->getFixed(),
+            $tableBoard->getColumn('category_id')->getFixed(),
+            'Foreign key/join column should have the same value of option `fixed` as the referenced column'
         );
 
-        $this->assertEquals(
-         $tableCategory->getColumn('id')->getCustomSchemaOptions(),
-         $tableBoard->getColumn('category_id')->getCustomSchemaOptions(),
-         'Foreign key/join column should have the same custom options as the referenced column'
-        );
-
-        $this->assertNotEmpty(
+        self::assertEquals(
+            $tableCategory->getColumn('id')->getCustomSchemaOptions(),
             $tableBoard->getColumn('category_id')->getCustomSchemaOptions(),
-            'There should be custom options set on the column like the collation'
+            'Foreign key/join column should have the same custom options as the referenced column'
+        );
+
+        self::assertEquals(
+            ['collation' => 'latin1_bin', 'foo' => 'bar'],
+            $tableBoard->getColumn('category_id')->getCustomSchemaOptions()
         );
     }
 
