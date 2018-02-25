@@ -56,7 +56,7 @@ class UnderscoreNamingStrategy implements NamingStrategy
     /**
      * {@inheritdoc}
      */
-    public function classToTableName($className)
+    public function classToTableName(string $className) : string
     {
         if (strpos($className, '\\') !== false) {
             $className = substr($className, strrpos($className, '\\') + 1);
@@ -68,7 +68,7 @@ class UnderscoreNamingStrategy implements NamingStrategy
     /**
      * {@inheritdoc}
      */
-    public function propertyToColumnName($propertyName, $className = null)
+    public function propertyToColumnName(string $propertyName, ?string $className = null) : string
     {
         return $this->underscore($propertyName);
     }
@@ -76,7 +76,12 @@ class UnderscoreNamingStrategy implements NamingStrategy
     /**
      * {@inheritdoc}
      */
-    public function embeddedFieldToColumnName($propertyName, $embeddedColumnName, $className = null, $embeddedClassName = null)
+    public function embeddedFieldToColumnName(
+        string $propertyName,
+        string $embeddedColumnName,
+        ?string $className = null,
+        ?string $embeddedClassName = null
+    ) : string
     {
         return $this->underscore($propertyName) . '_' . $embeddedColumnName;
     }
@@ -84,7 +89,7 @@ class UnderscoreNamingStrategy implements NamingStrategy
     /**
      * {@inheritdoc}
      */
-    public function referenceColumnName()
+    public function referenceColumnName() : string
     {
         return $this->case === CASE_UPPER ? 'ID' : 'id';
     }
@@ -92,7 +97,7 @@ class UnderscoreNamingStrategy implements NamingStrategy
     /**
      * {@inheritdoc}
      */
-    public function joinColumnName($propertyName, $className = null)
+    public function joinColumnName(string $propertyName, ?string $className = null) : string
     {
         return $this->underscore($propertyName) . '_' . $this->referenceColumnName();
     }
@@ -100,7 +105,7 @@ class UnderscoreNamingStrategy implements NamingStrategy
     /**
      * {@inheritdoc}
      */
-    public function joinTableName($sourceEntity, $targetEntity, $propertyName = null)
+    public function joinTableName(string $sourceEntity, string $targetEntity, ?string $propertyName = null) : string
     {
         return $this->classToTableName($sourceEntity) . '_' . $this->classToTableName($targetEntity);
     }
@@ -108,10 +113,9 @@ class UnderscoreNamingStrategy implements NamingStrategy
     /**
      * {@inheritdoc}
      */
-    public function joinKeyColumnName($entityName, $referencedColumnName = null)
+    public function joinKeyColumnName(string $entityName, ?string $referencedColumnName = null) : string
     {
-        return $this->classToTableName($entityName) . '_' .
-                ($referencedColumnName ?: $this->referenceColumnName());
+        return $this->classToTableName($entityName) . '_' . ($referencedColumnName ?: $this->referenceColumnName());
     }
 
     /**
@@ -119,7 +123,7 @@ class UnderscoreNamingStrategy implements NamingStrategy
      *
      * @return string
      */
-    private function underscore($string)
+    private function underscore(string $string) : string
     {
         $string = preg_replace('/(?<=[a-z])([A-Z])/', '_$1', $string);
 
