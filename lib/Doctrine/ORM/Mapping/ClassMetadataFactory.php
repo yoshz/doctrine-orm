@@ -453,6 +453,8 @@ class ClassMetadataFactory extends AbstractClassMetadataFactory
     }
 
     /**
+     * @param ClassMetadata $class
+     *
      * @return ValueGenerationExecutor[]
      */
     private function buildValueGenerationExecutorList(ClassMetadata $class) : array
@@ -478,7 +480,7 @@ class ClassMetadataFactory extends AbstractClassMetadataFactory
         if ($property instanceof LocalColumnMetadata && $property->hasValueGenerator()) {
             return new ColumnValueGeneratorExecutor(
                 $property,
-                $property->getValueGenerator()->getSequencingGenerator($property, $this->getTargetPlatform())
+                $property->getValueGenerator()->getSequencingGenerator($this->getTargetPlatform())
             );
         }
 
