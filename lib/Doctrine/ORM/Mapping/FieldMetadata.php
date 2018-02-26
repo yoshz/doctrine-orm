@@ -21,6 +21,9 @@ class FieldMetadata extends LocalColumnMetadata implements Property
     /** @var string */
     protected $name;
 
+    /** @var bool */
+    protected $versioned = false;
+
     /**
      * @param string $columnName
      * @param Type   $type
@@ -61,6 +64,22 @@ class FieldMetadata extends LocalColumnMetadata implements Property
     public function getName() : string
     {
         return $this->name;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isVersioned() : bool
+    {
+        return $this->versioned;
+    }
+
+    /**
+     * @param bool $versioned
+     */
+    public function setVersioned(bool $versioned) : void
+    {
+        $this->versioned = $versioned;
     }
 
     /**

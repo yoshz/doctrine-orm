@@ -401,6 +401,69 @@ class ClassMetadata extends ComponentMetadata implements TableOwner
     }
 
     /**
+     * Sets the change tracking policy used by this class.
+     */
+    public function setChangeTrackingPolicy(string $policy) : void
+    {
+        $this->changeTrackingPolicy = $policy;
+    }
+
+    /**
+     * Checks whether a field is part of the identifier/primary key field(s).
+     *
+     * @param string $fieldName The field name.
+     *
+     * @return bool TRUE if the field is part of the table identifier/primary key field(s), FALSE otherwise.
+     */
+    public function isIdentifier(string $fieldName) : bool
+    {
+        if (! $this->identifier) {
+            return false;
+        }
+
+        if (! $this->isIdentifierComposite()) {
+            return $fieldName === $this->identifier[0];
+        }
+
+        return in_array($fieldName, $this->identifier, true);
+    }
+
+    public function isIdentifierComposite() : bool
+    {
+        return isset($this->identifier[1]);
+    }
+
+    /**
+     * Gets the result set mapping.
+     *
+     * @see ClassMetadata::$sqlResultSetMappings
+     *
+     * @param string $name The result set mapping name.
+     *
+     * @return mixed[]
+     *
+     * @throws MappingException
+     */
+    public function getSqlResultSetMapping($name)
+    {
+        if (! isset($this->sqlResultSetMappings[$name])) {
+            throw MappingException::resultMappingNotFound($this->className, $name);
+        }
+
+        return $this->sqlResultSetMappings[$name];
+    }
+
+    /**
+     * Gets all sql result set mappings of the class.
+     *
+     * @return mixed[][]
+     */
+    public function getSqlResultSetMappings()
+    {
+        return $this->sqlResultSetMappings;
+    }
+
+    /**
      * Validates Identifier.
      *
      * @throws MappingException
@@ -468,118 +531,11 @@ class ClassMetadata extends ComponentMetadata implements TableOwner
     }
 
     /**
-     * Sets the change tracking policy used by this class.
-     */
-    public function setChangeTrackingPolicy(string $policy) : void
-    {
-        $this->changeTrackingPolicy = $policy;
-    }
-
-    /**
-     * Checks whether a field is part of the identifier/primary key field(s).
-     *
-     * @param string $fieldName The field name.
-     *
-     * @return bool TRUE if the field is part of the table identifier/primary key field(s), FALSE otherwise.
-     */
-    public function isIdentifier(string $fieldName) : bool
-    {
-        if (! $this->identifier) {
-            return false;
-        }
-
-        if (! $this->isIdentifierComposite()) {
-            return $fieldName === $this->identifier[0];
-        }
-
-        return in_array($fieldName, $this->identifier, true);
-    }
-
-    public function isIdentifierComposite() : bool
-    {
-        return isset($this->identifier[1]);
-    }
-
-    /**
-     * Gets the result set mapping.
-     *
-     * @see ClassMetadata::$sqlResultSetMappings
-     *
-     * @param string $name The result set mapping name.
-     *
-     * @return mixed[]
-     *
-     * @throws MappingException
-     */
-    public function getSqlResultSetMapping($name)
-    {
-        if (! isset($this->sqlResultSetMappings[$name])) {
-            throw MappingException::resultMappingNotFound($this->className, $name);
-        }
-
-        return $this->sqlResultSetMappings[$name];
-    }
-
-    /**
-     * Gets all sql result set mappings of the class.
-     *
-     * @return mixed[][]
-     */
-    public function getSqlResultSetMappings()
-    {
-        return $this->sqlResultSetMappings;
-    }
-
-    /**
      * Validates & completes the basic mapping information for field mapping.
      *
      * @throws MappingException If something is wrong with the mapping.
      */
-    protected function validateAndCompleteFieldMapping(FieldMetadata $property)
-    {
-        $fieldName  = $property->getName();
-        $columnName = $property->getColumnName();
-
-        if (empty($columnName)) {
-            $columnName = $this->namingStrategy->propertyToColumnName($fieldName, $this->className);
-
-            $property->setColumnName($columnName);
-        }
-
-        if (! $this->isMappedSuperclass) {
-            $property->setTableName($this->getTableName());
-        }
-
-        // Check for already declared column
-        if (isset($this->fieldNames[$columnName]) ||
-            ($this->discriminatorColumn !== null && $this->discriminatorColumn->getColumnName() === $columnName)) {
-            throw MappingException::duplicateColumnName($this->className, $columnName);
-        }
-
-        // Complete id mapping
-        if ($property->isPrimaryKey()) {
-            if ($this->versionProperty !== null && $this->versionProperty->getName() === $fieldName) {
-                throw MappingException::cannotVersionIdField($this->className, $fieldName);
-            }
-
-            if ($property->getType()->canRequireSQLConversion()) {
-                throw MappingException::sqlConversionNotAllowedForPrimaryKeyProperties($this->className, $property);
-            }
-
-            if (! in_array($fieldName, $this->identifier, true)) {
-                $this->identifier[] = $fieldName;
-            }
-        }
-
-        $this->fieldNames[$columnName] = $fieldName;
-    }
-
-    /**
-     * Validates & completes the basic mapping information for field mapping.
-     *
-     * @throws MappingException If something is wrong with the mapping.
-     */
-    protected function validateAndCompleteVersionFieldMapping(VersionFieldMetadata $property)
+    protected function validateAndCompleteVersionFieldMapping(FieldMetadata $property)
     {
         $this->versionProperty = $property;
 
@@ -629,16 +585,12 @@ class ClassMetadata extends ComponentMetadata implements TableOwner
                 throw MappingException::illegalOrphanRemovalOnIdentifierAssociation($this->className, $fieldName);
             }
 
-            if (! in_array($property->getName(), $this->identifier, true)) {
-                if ($property instanceof ToOneAssociationMetadata && count($property->getJoinColumns()) >= 2) {
-                    throw MappingException::cannotMapCompositePrimaryKeyEntitiesAsForeignId(
-                        $property->getTargetEntity(),
-                        $this->className,
-                        $fieldName
-                    );
-                }
-
-                $this->identifier[] = $property->getName();
+            if ($property instanceof ToOneAssociationMetadata && count($property->getJoinColumns()) >= 2) {
+                throw MappingException::cannotMapCompositePrimaryKeyEntitiesAsForeignId(
+                    $property->getTargetEntity(),
+                    $this->className,
+                    $fieldName
+                );
             }
 
             if ($this->cache && ! $property->getCache()) {
@@ -1110,7 +1062,7 @@ class ClassMetadata extends ComponentMetadata implements TableOwner
         }
 
         // Do not allow to change version property
-        if ($originalProperty instanceof VersionFieldMetadata) {
+        if ($originalProperty instanceof FieldMetadata && $originalProperty->isVersioned()) {
             throw MappingException::invalidOverrideVersionField($this->className, $fieldName);
         }
 
@@ -1220,6 +1172,7 @@ class ClassMetadata extends ComponentMetadata implements TableOwner
      * @throws \RuntimeException
      * @throws MappingException
      * @throws CacheException
+     * @throws \ReflectionException
      */
     public function addProperty(Property $property)
     {
@@ -1233,13 +1186,13 @@ class ClassMetadata extends ComponentMetadata implements TableOwner
         $property->setDeclaringClass($this);
 
         switch (true) {
-            case ($property instanceof VersionFieldMetadata):
-                $this->validateAndCompleteFieldMapping($property);
-                $this->validateAndCompleteVersionFieldMapping($property);
-                break;
-
             case ($property instanceof FieldMetadata):
-                $this->validateAndCompleteFieldMapping($property);
+                $this->fieldNames[$property->getColumnName()] = $property->getName();
+
+                if ($property->isVersioned()) {
+                    $this->validateAndCompleteVersionFieldMapping($property);
+                }
+
                 break;
 
             case ($property instanceof OneToOneAssociationMetadata):
@@ -1271,6 +1224,10 @@ class ClassMetadata extends ComponentMetadata implements TableOwner
                 break;
         }
 
+        if ($property->isPrimaryKey() && ! in_array($fieldName, $this->identifier, true)) {
+            $this->identifier[] = $fieldName;
+        }
+
         $this->addDeclaredProperty($property);
     }
 
@@ -1284,9 +1241,17 @@ class ClassMetadata extends ComponentMetadata implements TableOwner
         $inheritedProperty = clone $property;
         $declaringClass    = $property->getDeclaringClass();
 
+        if (isset($this->declaredProperties[$property->getName()])) {
+            throw MappingException::duplicateProperty($this->className, $this->getProperty($property->getName()));
+        }
+
         if ($inheritedProperty instanceof FieldMetadata) {
             if (! $declaringClass->isMappedSuperclass) {
                 $inheritedProperty->setTableName($property->getTableName());
+            }
+
+            if ($inheritedProperty->isVersioned()) {
+                $this->versionProperty = $inheritedProperty;
             }
 
             $this->fieldNames[$property->getColumnName()] = $property->getName();
@@ -1304,15 +1269,7 @@ class ClassMetadata extends ComponentMetadata implements TableOwner
             }
         }
 
-        if (isset($this->declaredProperties[$property->getName()])) {
-            throw MappingException::duplicateProperty($this->className, $this->getProperty($property->getName()));
-        }
-
         $this->declaredProperties[$property->getName()] = $inheritedProperty;
-
-        if ($inheritedProperty instanceof VersionFieldMetadata) {
-            $this->versionProperty = $inheritedProperty;
-        }
     }
 
     /**
@@ -1544,6 +1501,17 @@ class ClassMetadata extends ComponentMetadata implements TableOwner
     public function hasSqlResultSetMapping($name) : bool
     {
         return isset($this->sqlResultSetMappings[$name]);
+    }
+
+    /**
+     * @param $columnName
+     *
+     * @return bool
+     */
+    public function checkPropertyDuplication($columnName) : bool
+    {
+        return isset($this->fieldNames[$columnName])
+            || ($this->discriminatorColumn !== null && $this->discriminatorColumn->getColumnName() === $columnName);
     }
 
     /**
