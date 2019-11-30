@@ -758,12 +758,6 @@ class BasicEntityPersister implements EntityPersister
                 $hints['fetched']["r"][$assoc['inversedBy']] = true;
             }
 
-            /* cascade read-only status
-            if ($this->em->getUnitOfWork()->isReadOnly($sourceEntity)) {
-                $hints[Query::HINT_READ_ONLY] = true;
-            }
-            */
-
             $targetEntity = $this->load($identifier, null, $assoc, $hints);
 
             // Complete bidirectional association, if necessary
